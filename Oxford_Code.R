@@ -1,4 +1,6 @@
 ###Oxford Application Writing Sample
+
+
 install.packages("expm")
 library(expm)
 
@@ -20,17 +22,39 @@ library(latex2exp)
 install.packages("readxl")
 library(readxl)
 
+### Simulations
+#I begin by writing some funcitons. 
+
+
 epa_kernel<- function(x){
+  #The Epanechnikov kernel
+  
+  ##arguments: x: point where kernel is evaluated
+  ##returns: K: value of the kernel function
   K<-3/4*(1-x^2)*(-1<=x)*(x<=1)
   return(K)
 }
 
 kernel_deriv<-function(x, xeval, h){
+  #the kernel derivative function
+  
+  ##arguments: - x: data point
+  #            - xeval: fixed x
+  #            - h: bandwidth
+  
+  ##returns: - deriv: derivative
   deriv<-(3/4)*(-2*((x-xeval)/h))*(-1/h)*(abs(((x-xeval)/h))<1)
   return(deriv)
 }
 
 X<-function(x, eval, p){
+  # regressor matrix function
+  
+  ##arguments: -x: vector of data points
+  #            -eval: fixed x
+  #            -p: degree for the polynomial
+  
+  ##returns:   -reg_mat: regressor matrix
   reg_mat<-matrix(NA, nrow=length(x), ncol=p+1)
   for (i in 1:(p+1)){
     reg_mat[,i] <- (x-eval)^(i-1)
@@ -39,28 +63,35 @@ X<-function(x, eval, p){
 }
 
 
-kernel_matrix<-function(x, eval, bw){
-  K<-diag(epa_kernel((x-eval)/bw))
+kernel_matrix<-function(x, eval, h){
+  #diagonal W matrix with kernels
+  
+  ##arguments: -x: vector of data points
+  #            - eval: fixed x for evaluation
+  #            - h: bandwidth
+  
+  ##returns:   - K: kernel matrix
+  K<-diag(epa_kernel((x-eval)/h))
   return(K)
 }
 
-del_hat<-function(x, x_eval, bw, p){
-  del<-solve(crossprod(t(crossprod(X(x, x_eval, p), kernel_matrix(x, x_eval, bw))),X(x, x_eval, p)), tol=1e-50)%*%crossprod(X(x, x_eval, p), kernel_matrix(x, x_eval, bw))
+del_hat<-function(x, x_eval, h, p){
+  #function for perform local regression
+  
+  #arguments: - x: vector of data points
+  #           - x_eval: fixed x for evaluation
+  #           - h: bandwidth
+  #           - p: degree of polynomial
+  del<-solve(crossprod(t(crossprod(X(x, x_eval, p), kernel_matrix(x, x_eval, h))),X(x, x_eval, p)), tol=1e-50)%*%crossprod(X(x, x_eval, p), kernel_matrix(x, x_eval, h))
   return(del)
 }
 
-local_polynomial<-function(x, Y, h, p, x_seq){
-  del_x <- matrix(NA, nrow=p+1, ncol=length(x_seq))
-  
-    for (i in 1:length(x_seq)){
-      del_x[,i]<-del_hat(x, x_seq[i], h, p)%*%Y
-    }
-    second_deriv <- 2*del_x[3,]
-
-  return(second_deriv)
-}
-
 calc_S1_S2_func<-function(x, xeval, h){
+  #calculating terms using Wassermann's (2007) S1, S2 representation
+  
+  #arguments: - x: vector of data points
+  #           - xeval: fixed x
+  #           - h: bandwidth
   
   S2_ind<-c()
   for (j in 1:length(x)){
@@ -73,7 +104,7 @@ calc_S1_S2_func<-function(x, xeval, h){
     S1_ind[j]<-epa_kernel((x[j]-xeval)/h)*(x[j]-xeval)
   }
   S1<-sum(S1_ind)
-  #taking care of bi
+  
   b<-c()
   for (i in 1:length(x)){
     b[i] <- epa_kernel((x[i]-xeval)/h)*(S2-(x[i]-xeval)*S1)
@@ -84,6 +115,20 @@ calc_S1_S2_func<-function(x, xeval, h){
 
 
 draw_errors_function<-function(x, design, n, mean_error_norm, sd_error_norm, shape_p, scale_p, hetero_1, hetero_2, deg_freedom){
+  # function with different error designs
+  
+  ##arguments: - x: vector of data points
+  #            - design: string for error design
+  #            - n: sample size
+  #            - mean_error_norm: mean of the normal distribution
+  #            - sd_error_norm: standard error of normal distribution
+  #            - shape_p: shape parameter of gamma distribution
+  #            - scale_p: scale parameter of gamma distribution
+  #            - hetero_1: parameter 1 for heteroskeasticity
+  #            - hetero_2: parameter 2 for heteroskedasticity#
+  #            - deg_freedom: degrees of freedom of t-distribution
+  
+  ##returns:   - errors: vector of errors
   if (design=="iidn"){
     errors<-rnorm(n, mean=mean_error_norm, sd=sd_error_norm)
   } else if (design=="skewed"){
@@ -101,11 +146,18 @@ draw_errors_function<-function(x, design, n, mean_error_norm, sd_error_norm, sha
 
 
 cv_loc_lin<-function(x, Y, h){
+  #performs least-squares cross-validation
+  
+  ##arguments: - x: vector with x values
+  #            - Y: vector with Y values
+  #            - h: vector with bandwidths
+  
+  ##returns: - h_lin_opt: optimal bandwidth
   imse_lin<-c()
   opt_linear<-matrix(NA, nrow=length(x), ncol=length(h))
   for (m in 1:length(h)){
     L_ii<-c()
-    r_x<-c()
+    gh_x<-c()
     for (k in 1:length(x)){
       xeval=x[k]
       b<-calc_S1_S2_func(x=x, xeval=xeval, h=h[m])
@@ -116,18 +168,45 @@ cv_loc_lin<-function(x, Y, h){
           L_ii[k]=l[i]
         }
       }
-      r_x[k]<-l%*%Y
+      gh_x[k]<-l%*%Y
     }
-    imse_lin[m] <- mean(((Y-r_x)/(1-L_ii))^2)
-    opt_linear[,m]<-r_x
+    imse_lin[m] <- mean(((Y-gh_x)/(1-L_ii))^2)
+    opt_linear[,m]<-gh_x
   }
   index<-which.min(imse_lin)
   h_lin_opt=h[index]
   return(h_lin_opt=h_lin_opt)
 }
 
-r_x_function<-function(n, p1, p2, ncp, x_seq, design, mean_error_norm, sd_error_norm, shape_p, scale_p, 
+gh_x_function<-function(n, p1, p2, ncp, x_seq, design, mean_error_norm, sd_error_norm, shape_p, scale_p, 
                        hetero_1, hetero_2, undersmooth, factor_undersmooth, deg_freedom){
+  #performs local linear regression
+  
+  ##arguments: - n: sample size, 
+  #            - p1: parameter 1 of beta distribution
+  #            - p2: parameter 2 of beta distribution
+  #            - ncp: non-centrality parameter of beta distribution
+  #            - x_seq: sequence of x_values 
+  #            - design: error design 
+  #            - mean_error_norm: mean of normally distributed errors
+  #            - sd_error_norm: standard error of normally distributed errors 
+  #            - shape_p: shape parameter of gamma distribution 
+  #            - scale_p: scale parameter of gamma distribution
+  #            - hetero_1: parameter 1 for heteroskedasticity
+  #            - hetero_2: parameter 2 for heteroskedasticity
+  #            - undersmooth: boolean for undersmoothing
+  #            - factor_undersmooth: amount of undersmoothing
+  #            - deg_freedom: degrees of freedom of t-distribtion
+  
+  ##returns: - x: x values
+  #          - Y: Y values, 
+  #          - gh_x: estimated g, 
+  #          - gh_x_i: estimated g for xi, 
+  #          - trace_L: trace of smoothing matrix 
+  #          - vtilde=vtilde: trace of product of smoothing matrix
+  #          - h: bandwidth, 
+  #          - smoothing_matrix_grid: smoothing matrix with xi
+
   
   x<-rbeta(n, p1, p2, ncp=ncp)
   Y<-x*(sin(3*pi*x))^3+draw_errors_function(x, design, n, mean_error_norm, sd_error_norm, shape_p, scale_p, hetero_1, hetero_2, deg_freedom)
@@ -139,8 +218,8 @@ r_x_function<-function(n, p1, p2, ncp, x_seq, design, mean_error_norm, sd_error_
   else if (undersmooth=="yes"){
     h<-n^(factor_undersmooth)*cv_loc_lin(x, Y, red_h_seq)
   }
-  r_x<-c()
-  r_x_i<-c()
+  gh_x<-c()
+  gh_x_i<-c()
   smoothing_matrix <- matrix(NA, nrow=length(x), ncol=length(x))
   smoothing_matrix_grid <- matrix(NA, nrow=length(x_seq), ncol=length(x))
   for (k in 1:length(x_seq)){
@@ -151,7 +230,7 @@ r_x_function<-function(n, p1, p2, ncp, x_seq, design, mean_error_norm, sd_error_
       l[i]<-b[i]/sum(b)
     }
     smoothing_matrix_grid[k,] <- l
-    r_x[k]<-l%*%Y
+    gh_x[k]<-l%*%Y
   }
   for (k in 1:length(x)){
     xeval=x[k]
@@ -161,17 +240,24 @@ r_x_function<-function(n, p1, p2, ncp, x_seq, design, mean_error_norm, sd_error_
       l[i]<-b[i]/sum(b)
     }
     smoothing_matrix[k,] <- l
-    r_x_i[k]<-l%*%Y
+    gh_x_i[k]<-l%*%Y
   }
   trace_L<-sum(diag(smoothing_matrix))
   vtilde<-sum(diag(crossprod(smoothing_matrix, smoothing_matrix)))
-  return(list(x=x, Y=Y, r_x=r_x, r_x_i=r_x_i, trace_L=trace_L, vtilde=vtilde, h=h, smoothing_matrix_grid=smoothing_matrix_grid))
+  return(list(x=x, Y=Y, gh_x=gh_x, gh_x_i=gh_x_i, trace_L=trace_L, vtilde=vtilde, h=h, smoothing_matrix_grid=smoothing_matrix_grid))
 }
 
 
-error_function<-function(x, Y, r_x_i, smoothing_matrix_grid){
+error_function<-function(x, Y, gh_x_i, smoothing_matrix_grid){
+  #calculating standard error of g
   
-  Z<- (Y-r_x_i)^2
+  #arguments: - x: x values
+  #           - Y: y values
+  #           - gh_x_i: estimated values of regression function at xi
+  #           - smoothing_matrix_grid: smoothing matrix at xi values
+  #returns:   - s_x: standard error of g hat
+  
+  Z<- (Y-gh_x_i)^2
   h<- thumbBw(x, Z, 1, EpaK)
     sigma_x_i<-c()
      for (k in 1:length(x)){
@@ -191,6 +277,13 @@ error_function<-function(x, Y, r_x_i, smoothing_matrix_grid){
 }
 
 derivative_function<-function(xeval, h, x){
+  # calculates integrand to get kappa
+  
+  # arguments: - xeval: fixed x
+  #            - h: bandwidth
+  #            - x: x values
+  # returns: - T_norm: integrand
+  #           - l_norm: norm of smoother
   S2_ind<-c()
   for (j in 1:length(x)){
     S2_ind[j]<-epa_kernel((x[j]-xeval)/h)*(x[j]-xeval)^2
@@ -213,7 +306,7 @@ derivative_function<-function(xeval, h, x){
   }
   l_norm<-sqrt(sum(l^2))
   
-  #taking care of the derivative
+  
   first_part<-c()
   for (i in 1:length(x)){
     first_part[i]<-kernel_deriv(x[i], xeval, h)*(S2-(x[i]-xeval)*S1)
@@ -260,8 +353,16 @@ derivative_function<-function(xeval, h, x){
 }
 
 f<-function(n, alpha, seq, kappa, trace_L){
+  # calculates c
+  ##arguments: n: sample size
+  #            alpha: critical values 
+  #            seq: sequence of c values 
+  #            kappa: kappa0 value 
+  #            trace_L: trace of the smoothing matrix
+  ##returns: solving_c: c that solves the equation
+  #          difference: difference between LHS and RHS
   m<-n-trace_L
-  #difference=abs(2*(1-erf(seq)+(kappa/pi)*exp(-seq^2/2)-alpha))
+  
   difference<-c()
   difference<-abs((1-pt(q=seq, df=m))+(kappa/pi)*(1+(seq)^2/m)^(-m/2)-alpha)
   index=which.min(difference)
@@ -275,14 +376,43 @@ uniform_ll<-function(n, p1, p2, ncp, x_seq, lower_bound_c, upper_bound_c, steps_
                      heteroskedasticity_robust, hetero_1, hetero_2, undersmooth, factor_undersmooth, 
                      deg_freedom){
   
+  #calculates uniform confidence bands
+  
+  ##arguments: - n: sample size, 
+  #            - p1: parameter 1 of beta distribution
+  #            - p2: parameter 2 of beta distribution
+  #            - ncp: non-centrality parameter of beta distribution
+  #            - x_seq: sequence of x_values 
+  #            - lower_bound_c: lower bound of c sequence
+  #            - upper bound of c sequence
+  #            - steps: steps at which to evaluate c
+  #            - alpha: critical value
+  #            - design: error design 
+  #            - mean_error_norm: mean of normally distributed errors
+  #            - sd_error_norm: standard error of normally distributed errors 
+  #            - shape_p: shape parameter of gamma distribution 
+  #            - scale_p: scale parameter of gamma distribution
+  #            - hetero_1: parameter 1 for heteroskedasticity
+  #            - hetero_2: parameter 2 for heteroskedasticity
+  #            - undersmooth: boolean for undersmoothing
+  #            - factor_undersmooth: amount of undersmoothing
+  #            - deg_freedom: degrees of freedom of t-distribtion
+  
+  ##returns:   - all_in: boolean whether function is covered 
+  #            - c: c for confidence band 
+  #            - results_df: data frame with results
+  #            - x: x values
+  #            - Y: Y values
+  #            - h: bandwidth
+  
   
   g_x<-x_seq*(sin(3*pi*x_seq))^3
   
-  results<-r_x_function(n, p1, p2, ncp, x_seq, design, mean_error_norm, sd_error_norm, shape_p, scale_p, hetero_1, hetero_2, 
+  results<-gh_x_function(n, p1, p2, ncp, x_seq, design, mean_error_norm, sd_error_norm, shape_p, scale_p, hetero_1, hetero_2, 
                         undersmooth, factor_undersmooth, deg_freedom)
   
-  results_variance<-data.frame('x'=results$x, 'r_x_i'=results$r_x_i, 'Y'=results$Y)
-  results_df<-data.frame('r_x'=results$r_x, 'g_x'=g_x)
+  results_variance<-data.frame('x'=results$x, 'gh_x_i'=results$gh_x_i, 'Y'=results$Y)
+  results_df<-data.frame('gh_x'=results$gh_x, 'g_x'=g_x)
   trace_L<- results$trace_L
   
   l_norm<-c()
@@ -302,16 +432,16 @@ uniform_ll<-function(n, p1, p2, ncp, x_seq, lower_bound_c, upper_bound_c, steps_
   c<-result_c$solving_c
   
   if (heteroskedasticity_robust=="no"){
-  s<-sqrt(sum((results$Y-results$r_x_i)^2)/(n-2*trace_L+results$vtilde))*l_norm
+  s<-sqrt(sum((results$Y-results$gh_x_i)^2)/(n-2*trace_L+results$vtilde))*l_norm
   }
   
   else if (heteroskedasticity_robust=="yes"){
-  s<-error_function(results$x, results$Y, results$r_x_i, results$smoothing_matrix_grid)
+  s<-error_function(results$x, results$Y, results$gh_x_i, results$smoothing_matrix_grid)
   }
   
   
-  CI_lower<-results_df$r_x-c*s
-  CI_upper<-results_df$r_x+c*s
+  CI_lower<-results_df$gh_x-c*s
+  CI_upper<-results_df$gh_x+c*s
   if(length(CI_lower)>0){
   results_df<-cbind(results_df, CI_lower, CI_upper)
 
@@ -328,13 +458,19 @@ else{
   
   return(list(all_in=all_in, c=c, results_df=results_df, x=results$x, Y=results$Y, h=results$h))
 }
-mean(c(1, NA, 2), na.rm=TRUE)
 
 replication_function<-function(reps, n, p1, p2, ncp, lower_bound_x, upper_bound_x, steps_x, 
                                lower_bound_c, upper_bound_c, steps_c, alpha, design,
                                mean_error_norm, sd_error_norm, shape_p, scale_p, 
                                heteroskedasticity_robust, hetero_1, hetero_2, undersmooth, factor_undersmooth, 
                                deg_freedom){
+  
+  #performs uniform_ll function reps times
+  
+  ##returns: plot: ggplot
+  #          uniform_coverage: coverage rate
+  #          solving c: c used in confidence band
+  #          solving_h: optimal bandwidth
 
   
 
@@ -357,7 +493,7 @@ replication_function<-function(reps, n, p1, p2, ncp, lower_bound_x, upper_bound_
   
   plot<-ggplot(df, aes(x=x_seq)) +
     geom_line(aes(y=results_df.g_x, colour="True regression function")) +
-    geom_line(aes(y=results_df.r_x, colour="Estimated regression function")) +
+    geom_line(aes(y=results_df.gh_x, colour="Estimated regression function")) +
     geom_ribbon(aes(ymin=results_df.CI_lower,ymax=results_df.CI_upper, fill="Confidence band"),alpha=0.3)+
     geom_point(data=df_points, aes(x=x,y=Y), color="black", size=0.05) + 
     theme_bw() + xlab(TeX('$x$')) + 
@@ -373,7 +509,7 @@ replication_function<-function(reps, n, p1, p2, ncp, lower_bound_x, upper_bound_
 
 set.seed(1)
 
-sim1<-replication_function(reps=100,  n=200, p1=1.1, p2=1.1, ncp=0, lower_bound_x=0, upper_bound_x = 1, steps_x=0.01,
+sim1<-replication_function(reps=1000,  n=200, p1=1.1, p2=1.1, ncp=0, lower_bound_x=0, upper_bound_x = 1, steps_x=0.01,
                      lower_bound_c=2, upper_bound_c = 7, steps_c = 0.01, alpha=0.01, 
                      design="iidn", mean_error_norm = 0, sd_error_norm=0.5, shape_p=1.2, scale_p=0.45, 
                      heteroskedasticity_robust = "no", hetero_1=0.1, hetero_2=1, undersmooth="no", factor_undersmooth = -1/20, 
@@ -545,11 +681,24 @@ sim20
 
 ###Additional functions
 
-empirical_r_x_function<-function(x, Y, h_seq, x_seq){
+empirical_gh_x_function<-function(x, Y, h_seq, x_seq){
+  #empirical local linear
+  
+  #arguments: x: x values
+  #           Y: Y values
+  #           h_seq: bandwidth sequence
+  #           x_seq: x_sequence
+  
+  #returns:  - gh_x: estimated g, 
+  #          - gh_x_i: estimated g for xi, 
+  #          - trace_L: trace of smoothing matrix, 
+  #          - vtilde: trace of product of smoothing matrix
+  #          - h: bandwidth, 
+  #          - smoothing_matrix_grid: smoothing matrix with xi
   
   h<-cv_loc_lin(x, Y, h_seq)
-  r_x<-c()
-  r_x_i<-c()
+  gh_x<-c()
+  gh_x_i<-c()
   smoothing_matrix <- matrix(NA, nrow=length(x), ncol=length(x))
   smoothing_matrix_grid <- matrix(NA, nrow=length(x_seq), ncol=length(x))
   for (k in 1:length(x_seq)){
@@ -560,7 +709,7 @@ empirical_r_x_function<-function(x, Y, h_seq, x_seq){
       l[i]<-b[i]/sum(b)
     }
     smoothing_matrix_grid[k,] <- l
-    r_x[k]<-l%*%Y
+    gh_x[k]<-l%*%Y
   }
   for (k in 1:length(x)){
     xeval=x[k]
@@ -570,19 +719,26 @@ empirical_r_x_function<-function(x, Y, h_seq, x_seq){
       l[i]<-b[i]/sum(b)
     }
     smoothing_matrix[k,] <- l
-    r_x_i[k]<-l%*%Y
+    gh_x_i[k]<-l%*%Y
   }
   trace_L<-sum(diag(smoothing_matrix))
   vtilde<-sum(diag(crossprod(smoothing_matrix, smoothing_matrix)))
-  return(list(r_x=r_x, r_x_i=r_x_i, trace_L=trace_L, vtilde=vtilde, h=h, smoothing_matrix_grid=smoothing_matrix_grid))
+  return(list(gh_x=gh_x, gh_x_i=gh_x_i, trace_L=trace_L, vtilde=vtilde, h=h, smoothing_matrix_grid=smoothing_matrix_grid))
 }
 
 ###
 
 plot_empirical_function<-function(x, Y, h_seq, x_seq, c_seq){
+  #produces plot
   
-  results_empirical<-empirical_r_x_function(x=x, Y=Y, h_seq=h_seq, x_seq=x_seq)
-  s<-error_function(x, Y, results_empirical$r_x_i, results_empirical$smoothing_matrix_grid)
+  #arguments: x: x values
+  #           Y: Y values
+  #           h_seq: bandwidth sequence
+  #           c_seq: sequence of c a values
+  #returns:   plot: gg_plot
+  
+  results_empirical<-empirical_gh_x_function(x=x, Y=Y, h_seq=h_seq, x_seq=x_seq)
+  s<-error_function(x, Y, results_empirical$gh_x_i, results_empirical$smoothing_matrix_grid)
   
   l_norm<-c()
   points<-c()
@@ -598,16 +754,16 @@ plot_empirical_function<-function(x, Y, h_seq, x_seq, c_seq){
   result_c<-f(alpha=alpha, seq=c_seq, kappa=kappa0, trace_L=results_empirical$trace_L , n=n)
   c<-result_c$solving_c
   
-  CI_lower<-results_empirical$r_x-c*s
-  CI_upper<-results_empirical$r_x+c*s
+  CI_lower<-results_empirical$gh_x-c*s
+  CI_upper<-results_empirical$gh_x+c*s
   
-  results_df<-data.frame('x_seq'=x_seq, 'r_x'=results_empirical$r_x, 'CI_lower'=CI_lower, "CI_upper"=CI_upper)
+  results_df<-data.frame('x_seq'=x_seq, 'gh_x'=results_empirical$gh_x, 'CI_lower'=CI_lower, "CI_upper"=CI_upper)
   
   results_plot<-data.frame('x'=x, 'Y'=Y)
   
   
   plot<-ggplot(results_df, aes(x=x_seq)) +
-    geom_line(aes(y=r_x), color="black") +
+    geom_line(aes(y=gh_x), color="black") +
     geom_ribbon(aes(ymin=CI_lower,ymax=CI_upper, fill="Confidence band"),alpha=0.3)+
     geom_point(data=results_plot, aes(x=x,y=Y), color="black", size=0.05) + 
     theme_bw() + xlab("Work experience (years)") + 
@@ -647,7 +803,7 @@ index_Y<-which.max(Y)
 x=x[-index_Y]
 Y=Y[-index_Y]
 
-#
+
 x_seq=seq(from=min(x), to=max(x), by=1)
 h_seq=seq(from=2, to=20, by=1)
 c_seq<-seq(from=2, to=6, by=0.01)
@@ -655,4 +811,4 @@ c_seq<-seq(from=2, to=6, by=0.01)
 plot_empirical<-plot_empirical_function(x=x, Y=Y, h_seq=h_seq, x_seq=x_seq, c_seq=c_seq)
 plot_empirical
 ggsave(filename="empirical_plot.png", plot=plot_empirical, device="png", dpi=500)
-empirical_r_x_function(x=x, Y=Y, h_seq=h_seq, x_seq=x_seq)
+empirical_gh_x_function(x=x, Y=Y, h_seq=h_seq, x_seq=x_seq)
