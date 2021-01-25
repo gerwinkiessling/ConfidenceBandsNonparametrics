@@ -563,7 +563,7 @@ sim7<-replication_function(reps=1000,  n=200, p1=1.1, p2=1.1, ncp=0, lower_bound
                            heteroskedasticity_robust = "yes", hetero_1=0.1, hetero_2=1, undersmooth="yes", factor_undersmooth = -1/20, 
                            deg_freedom = 4)
 sim7
-set.seed(80)
+set.seed(8)
 
 sim8<-replication_function(reps=1000,  n=200, p1=1.1, p2=1.1, ncp=0, lower_bound_x=0.01, upper_bound_x = 0.99, steps_x=0.01,
                            lower_bound_c=2, upper_bound_c = 6, steps_c = 0.01, alpha=0.01, 
