@@ -509,7 +509,7 @@ replication_function<-function(reps, n, p1, p2, ncp, lower_bound_x, upper_bound_
 
 set.seed(1)
 
-sim1<-replication_function(reps=1000,  n=200, p1=1.1, p2=1.1, ncp=0, lower_bound_x=0, upper_bound_x = 1, steps_x=0.01,
+sim1<-replication_function(reps=1000,  n=200, p1=1.1, p2=1.1, ncp=0, lower_bound_x=0.01, upper_bound_x = 0.01, steps_x=0.01,
                      lower_bound_c=2, upper_bound_c = 7, steps_c = 0.01, alpha=0.01, 
                      design="iidn", mean_error_norm = 0, sd_error_norm=0.5, shape_p=1.2, scale_p=0.45, 
                      heteroskedasticity_robust = "no", hetero_1=0.1, hetero_2=1, undersmooth="no", factor_undersmooth = -1/20, 
@@ -517,7 +517,7 @@ sim1<-replication_function(reps=1000,  n=200, p1=1.1, p2=1.1, ncp=0, lower_bound
 sim1
 set.seed(2)
 
-sim2<-replication_function(reps=1000,  n=200, p1=1.1, p2=1.1, ncp=0, lower_bound_x=0, upper_bound_x = 1, steps_x=0.01,
+sim2<-replication_function(reps=1000,  n=200, p1=1.1, p2=1.1, ncp=0, lower_bound_x=0.01, upper_bound_x = 0.09, steps_x=0.01,
                            lower_bound_c=2, upper_bound_c = 6, steps_c = 0.01, alpha=0.01, 
                            design="skewed", mean_error_norm = 0, sd_error_norm=0.5, shape_p=1.2, scale_p=0.45,
                            heteroskedasticity_robust = "no", hetero_1=0.1, hetero_2=1, undersmooth="no", factor_undersmooth = -1/20, 
@@ -525,7 +525,7 @@ sim2<-replication_function(reps=1000,  n=200, p1=1.1, p2=1.1, ncp=0, lower_bound
 sim2
 set.seed(3)
 
-sim3<-replication_function(reps=1000,  n=200, p1=1.1, p2=1.1, ncp=0, lower_bound_x=0, upper_bound_x = 1, steps_x=0.01,
+sim3<-replication_function(reps=1000,  n=200, p1=1.1, p2=1.1, ncp=0, lower_bound_x=0.01, upper_bound_x = 0.99, steps_x=0.01,
        lower_bound_c=2, upper_bound_c = 6, steps_c = 0.01, alpha=0.01, 
        design="heteroskedastic", mean_error_norm = 0, sd_error_norm=0.5, shape_p=1.2, scale_p=0.45,
        heteroskedasticity_robust = "yes", hetero_1=0.1, hetero_2=1, undersmooth="no", factor_undersmooth = -1/20, 
@@ -533,7 +533,7 @@ sim3<-replication_function(reps=1000,  n=200, p1=1.1, p2=1.1, ncp=0, lower_bound
 sim3
 set.seed(4)
 
-sim4<-replication_function(reps=1000,  n=200, p1=1.1, p2=1.1, ncp=0, lower_bound_x=0, upper_bound_x = 1, steps_x=0.01,
+sim4<-replication_function(reps=1000,  n=200, p1=1.1, p2=1.1, ncp=0, lower_bound_x=0.01, upper_bound_x = 0.99, steps_x=0.01,
                            lower_bound_c=2, upper_bound_c = 6, steps_c = 0.01, alpha=0.01, 
                            design="heteroskedastic", mean_error_norm = 0, sd_error_norm=0.5, shape_p=1.2, scale_p=0.45,
                            heteroskedasticity_robust = "no", hetero_1=0.1, hetero_2=1, undersmooth="no", factor_undersmooth = -1/20, 
