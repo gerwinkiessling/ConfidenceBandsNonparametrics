@@ -36,7 +36,9 @@ epa_kernel<- function(x){
 }
 
 kernel_deriv<-function(x, xeval, h){
-  #the kernel derivative function
+  #The kernel derivative function. Since I evaluate the derivative at a finite number of grid points, I never evaluate it
+  # at the point where it is not defined. In a second version of the paper in my project, I implement the simulation using the 
+  #smooth Gaussian kernel.
   
   ##arguments: - x: data point
   #            - xeval: fixed x
