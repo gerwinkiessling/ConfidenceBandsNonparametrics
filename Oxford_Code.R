@@ -35,20 +35,6 @@ epa_kernel<- function(x){
   return(K)
 }
 
-kernel_deriv<-function(x, xeval, h){
-  #The kernel derivative function. Since I evaluate the derivative at a finite number of grid points, I never evaluate it
-  # at the point where it is not defined. In a second version of the paper in my project, I implement the simulation using the 
-  #smooth Gaussian kernel.
-  
-  ##arguments: - x: data point
-  #            - xeval: fixed x
-  #            - h: bandwidth
-  
-  ##returns: - deriv: derivative
-  deriv<-(3/4)*(-2*((x-xeval)/h))*(-1/h)*(abs(((x-xeval)/h))<1)
-  return(deriv)
-}
-
 X<-function(x, eval, p){
   # regressor matrix function
   
@@ -86,6 +72,20 @@ del_hat<-function(x, x_eval, h, p){
   #           - p: degree of polynomial
   del<-solve(crossprod(t(crossprod(X(x, x_eval, p), kernel_matrix(x, x_eval, h))),X(x, x_eval, p)), tol=1e-50)%*%crossprod(X(x, x_eval, p), kernel_matrix(x, x_eval, h))
   return(del)
+}
+
+kernel_deriv<-function(x, xeval, h){
+  #The kernel derivative function. Since I evaluate the derivative at a finite number of grid points, I never evaluate it
+  # at the point where it is not defined. In a second version of the paper, I implement the simulation using the 
+  #smooth Gaussian kernel. Results are available upon request.
+  
+  ##arguments: - x: data point
+  #            - xeval: fixed x
+  #            - h: bandwidth
+  
+  ##returns: - deriv: derivative
+  deriv<-(3/4)*(-2*((x-xeval)/h))*(-1/h)*(abs(((x-xeval)/h))<1)
+  return(deriv)
 }
 
 calc_S1_S2_func<-function(x, xeval, h){
