@@ -64,7 +64,7 @@ kernel_matrix<-function(x, eval, h){
 }
 
 del_hat<-function(x, x_eval, h, p){
-  #function for perform local regression
+  #function for performing local linear regression
   
   #arguments: - x: vector of data points
   #           - x_eval: fixed x for evaluation
