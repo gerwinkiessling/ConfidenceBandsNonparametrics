@@ -89,7 +89,7 @@ kernel_deriv<-function(x, xeval, h){
 }
 
 calc_S1_S2_func<-function(x, xeval, h){
-  #calculating terms using Wassermann's (2007) S1, S2 representation
+  #calculating terms using Wassermann's (2006) S1, S2 representation
   
   #arguments: - x: vector of data points
   #           - xeval: fixed x
