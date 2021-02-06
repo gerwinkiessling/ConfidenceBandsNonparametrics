@@ -345,7 +345,7 @@ derivative_function<-function(xeval, h, x){
   for (i in 1:length(x)){
     del_b[i]<-first_part[i]+second_part[i]
   }
-  #putting everything together
+  
   del_T<-c()
   for (i in 1:length(x)){
     del_T[i] <- (del_b[i]*sqrt(sum(b^2))-b[i]*(2*sum(del_b)/(sqrt(sum(b^2)))))/sum(b^2)
